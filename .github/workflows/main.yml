@@ -46,7 +46,7 @@ jobs:
           path: .activation-status
           key: activation-status-${{ github.repository }}
 
-      - name: Check activation status
+      - name: بررسی وضعیت کد فعالسازی
         id: check
         run: |
           echo "========================================"
@@ -73,6 +73,8 @@ jobs:
     needs: check-activation
     if: needs.check-activation.outputs.is_activated == 'false' && github.event.inputs.activation_code != ''
     runs-on: ubuntu-latest
+    outputs:
+      just_activated: ${{ steps.validate.outputs.valid }}
     permissions:
       contents: write
     steps:
@@ -167,7 +169,7 @@ jobs:
             echo "ℹ️ راهنمای خرید قبلاً در README موجود است"
           fi
 
-      - name: Fail on invalid code
+      - name: بررسی کد فعالسازی
         if: steps.validate.outputs.valid != 'true'
         run: |
           echo ""
@@ -278,8 +280,8 @@ jobs:
           exit 1
 
   save-file:
-    needs: check-activation
-    if: needs.check-activation.outputs.is_activated == 'true'
+    needs: [check-activation, activate]
+    if: always() && !cancelled() && (needs.check-activation.outputs.is_activated == 'true' || needs.activate.outputs.just_activated == 'true')
     runs-on: ubuntu-latest
     timeout-minutes: 120
     permissions:
